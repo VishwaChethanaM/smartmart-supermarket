@@ -8,6 +8,10 @@ const IconMap = {
   Coffee: <Coffee className="w-5 h-5" />
 };
 
+// DYNAMIC SERVER BRIDGE LINK
+// Points to your live Render backend when deployed, falls back to local machine during offline coding
+const API_URL = import.meta.env.VITE_API_URL || "https://smartmart-api.onrender.com";
+
 export default function App() {
   // Navigation State
   const [currentView, setCurrentView] = useState('store');
@@ -94,14 +98,14 @@ export default function App() {
   }, [user]);
 
   const refreshData = () => {
-    fetch('http://127.0.0.1:8000/api/categories')
+    fetch(`${API_URL}/api/categories`)
       .then(res => res.json())
       .then(data => setCategories(data))
       .catch(err => console.error(err));
 
     const url = selectedCategory 
-      ? `http://127.0.0.1:8000/api/products?category_id=${selectedCategory}`
-      : 'http://127.0.0.1:8000/api/products';
+      ? `${API_URL}/api/products?category_id=${selectedCategory}`
+      : `${API_URL}/api/products`;
       
     fetch(url)
       .then(res => res.json())
@@ -109,26 +113,26 @@ export default function App() {
       .catch(err => console.error(err));
 
     if (user && user.role === 'admin') {
-      fetch('http://127.0.0.1:8000/api/admin/users')
+      fetch(`${API_URL}/api/admin/users`)
         .then(res => res.ok ? res.json() : [])
         .then(data => setAllUsers(Array.isArray(data) ? data : []));
 
-      fetch('http://127.0.0.1:8000/api/admin/reset-requests')
+      fetch(`${API_URL}/api/admin/reset-requests`)
         .then(res => res.ok ? res.json() : [])
         .then(data => setResetRequestsList(Array.isArray(data) ? data : []));
 
       // FEATURE 1 & 4: REVENUE ANALYTICS & LOG ORDERS FETCH
-      fetch('http://127.0.0.1:8000/api/admin/analytics')
+      fetch(`${API_URL}/api/admin/analytics`)
         .then(res => res.json())
         .then(data => setAnalytics(data));
 
-      fetch('http://127.0.0.1:8000/api/admin/orders')
+      fetch(`${API_URL}/api/admin/orders`)
         .then(res => res.json())
         .then(data => setAdminOrders(data));
     }
 
     if (user && user.role === 'user') {
-      fetch(`http://127.0.0.1:8000/api/orders/history?customer_name=${user.username}`)
+      fetch(`${API_URL}/api/orders/history?customer_name=${user.username}`)
         .then(res => res.json())
         .then(data => setPastOrders(data))
         .catch(err => console.error(err));
@@ -146,7 +150,7 @@ export default function App() {
 
   // FEATURE 4: ADMIN DELIVERY TRACKING SWITCH MODIFIER
   const handleUpdateOrderStatus = (orderId, newStatus) => {
-    fetch(`http://127.0.0.1:8000/api/admin/orders/${orderId}`, {
+    fetch(`${API_URL}/api/admin/orders/${orderId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus })
@@ -175,7 +179,7 @@ export default function App() {
 
   const handleRequestPasswordReset = (e) => {
     e.preventDefault(); setResetMessage('');
-    fetch('http://127.0.0.1:8000/api/reset-request', {
+    fetch(`${API_URL}/api/reset-request`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: resetUsername, new_password: resetNewPassword })
@@ -189,7 +193,7 @@ export default function App() {
   };
 
   const handleAdminResetAction = (id, action) => {
-    fetch('http://127.0.0.1:8000/api/admin/approve-reset', {
+    fetch(`${API_URL}/api/admin/approve-reset`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ request_id: id, action: action })
@@ -198,7 +202,7 @@ export default function App() {
 
   const handleLogin = (e) => {
     e.preventDefault(); setAuthError(''); setAuthSuccess('');
-    fetch('http://127.0.0.1:8000/api/login', {
+    fetch(`${API_URL}/api/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: usernameInput, password: passwordInput })
@@ -216,7 +220,7 @@ export default function App() {
 
   const handleSignUp = (e) => {
     e.preventDefault(); setAuthError('');
-    fetch('http://127.0.0.1:8000/api/register', {
+    fetch(`${API_URL}/api/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: usernameInput, password: passwordInput, phone_number: phoneInput })
@@ -240,12 +244,12 @@ export default function App() {
     const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
     const trackingItems = cart.map(item => ({ id: item.id, qty: item.qty }));
 
-    fetch('http://127.0.0.1:8000/api/orders', {
+    fetch(`${API_URL}/api/orders`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ customer_name: customerName, customer_email: customerEmail, customer_phone: customerPhone, total_amount: total, items: trackingItems })
     })
-    .then(res => res.json())
+    .relative(res => res.json())
     .then(data => {
       setFinalInvoice({ orderId: data.id || Math.floor(1000 + Math.random()*9000), date: new Date().toLocaleString('en-IN'), name: customerName, email: customerEmail, phone: customerPhone, items: [...cart], total: total });
       setCart([]); 
@@ -255,7 +259,7 @@ export default function App() {
 
   const handleAddProduct = (e) => {
     e.preventDefault();
-    fetch('http://127.0.0.1:8000/api/admin/products', {
+    fetch(`${API_URL}/api/admin/products`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: newProdName, description: newProdDesc, price: parseFloat(newProdPrice), stock_quantity: parseInt(newProdStock), image_url: newProdImage || "https://images.unsplash.com/photo-1542838132-92c53300491e", is_organic: newProdOrganic, category_id: parseInt(newProdCat) })
@@ -263,15 +267,15 @@ export default function App() {
   };
 
   const saveProductEdits = (product) => {
-    fetch(`http://127.0.0.1:8000/api/admin/products/${product.id}`, {
+    fetch(`${API_URL}/api/admin/products/${product.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: editName, description: editDesc, price: parseFloat(editPrice), stock_quantity: parseInt(editStock), image_url: product.image_url, is_organic: product.is_organic, category_id: product.category_id })
+      body: JSON.stringify({ name: editName, description: editDesc, price: parseFloat(editPrice), stock_quantity: parseInt(editStock), image_url: p.image_url, is_organic: p.is_organic, category_id: p.category_id })
     }).then(() => { setEditingProductId(null); refreshData(); });
   };
 
   const handleDeleteProduct = (id) => {
-    fetch(`http://127.0.0.1:8000/api/admin/products/${id}`, { method: 'DELETE' }).then(() => refreshData());
+    fetch(`${API_URL}/api/admin/products/${id}`, { method: 'DELETE' }).then(() => refreshData());
   };
 
   const addToCart = (product) => {
