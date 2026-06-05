@@ -20,14 +20,10 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="SmartMart Full-Stack Enterprise API")
 
+# CORRECTIONS APPLIED HERE: Wildcard entry allows Vercel cloud apps to connect cleanly
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5174"
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -137,8 +133,8 @@ def approve_reset_request(form: ActionForm, db: Session = Depends(get_db)):
         return {"message": "Approved"}
     else:
         req.status = "Rejected"
-        db.commit()
-        return {"message": "Rejected"}
+    db.commit()
+    return {"message": "Rejected"}
 
 @app.get("/api/admin/users")
 def get_all_users(db: Session = Depends(get_db)):
@@ -169,7 +165,7 @@ def get_products(category_id: Optional[int] = None, db: Session = Depends(get_db
     if category_id: return db.query(models.Product).filter(models.Product.category_id == category_id).all()
     return db.query(models.Product).all()
 
-# --- SIMPLIFIED DIGITAL CHEKOUT GATEWAY ---
+# --- SIMPLIFIED DIGITAL CHECKOUT GATEWAY ---
 @app.post("/api/orders")
 def create_order(order: AdvancedOrderCreate, db: Session = Depends(get_db)):
     # 1. Deduct quantities directly from product stock columns
@@ -184,7 +180,7 @@ def create_order(order: AdvancedOrderCreate, db: Session = Depends(get_db)):
         customer_email=order.customer_email,
         customer_phone=order.customer_phone,
         total_amount=order.total_amount,
-        status="Success" # Changes directly to Success automatically
+        status="Success" 
     )
     db.add(db_order)
     db.commit()
